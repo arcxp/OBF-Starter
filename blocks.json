@@ -3,6 +3,9 @@
   "useLocal": false,
   "blocks": [
     "@wpmedia/feeds-source-content-api-block",
+    "@wpmedia/feeds-source-content-api-by-day-block",
+    "@wpmedia/feeds-source-content-api-by-day2-block",
+    "@wpmedia/feeds-source-content-api-by-day3-block",
     "@wpmedia/feeds-source-collections-block",
     "@wpmedia/site-hierarchy-content-block",
     "@wpmedia/mrss-feature-block",
@@ -14,7 +17,7 @@
     "@wpmedia/sitemap-news-feature-block",
     "@wpmedia/sitemap-video-feature-block",
     "@wpmedia/sitemap-feature-block",
-    "@wpmedia/sitemap-index-feature-block",
+    "@wpmedia/sitemap-index-by-day-feature-block",
     "@wpmedia/sitemap-section-index-feature-block",
     "@wpmedia/text-output-block",
     "@wpmedia/textfile-block"
