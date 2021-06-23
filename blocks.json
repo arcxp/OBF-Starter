@@ -8,6 +8,7 @@
     "@wpmedia/feeds-source-content-api-by-day3-block",
     "@wpmedia/feeds-source-collections-block",
     "@wpmedia/site-hierarchy-content-block",
+    "@wpmedia/ans-feature-block",
     "@wpmedia/mrss-feature-block",
     "@wpmedia/rss-feature-block",
     "@wpmedia/rss-fbia-feature-block",
@@ -19,6 +20,7 @@
     "@wpmedia/sitemap-feature-block",
     "@wpmedia/sitemap-index-by-day-feature-block",
     "@wpmedia/sitemap-section-index-feature-block",
+    "@wpmedia/json-output-block",
     "@wpmedia/text-output-block",
     "@wpmedia/textfile-block"
   ],
