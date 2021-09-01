@@ -6,7 +6,7 @@ This is a fusion themes based repository and is intended to be used as the start
 
 Pre-requisites:
 
-- node / npm installed (node version > 10).
+- node / npm installed (node version > 12).
 - docker
 
 1. Create a template of this repo. Go to https://github.com/arc-partners/outboundfeeds-skeleton and click on the green "Use this template" button to create a new client repo. Name the new repo starting with the clients name like "ORG-outboundfeeds". Only include the main branch. Once the new repo has been created, clone it to your local machine.
@@ -76,14 +76,7 @@ npm test
 
 6. Once you are ready to deploy the bundle you will need to setup environment variables in the `environment/org-outboundfeeds.js` and or `environment/org-outboundfeeds-sandbox.js` files. Use the values from your local .env to set the `BLOCK_DIST_TAG` and `resizerKey`. Rename the files, replacing the clients org name with the `org` in the current names. Any values that should not be made public (resizerKey) need to be [encrypted](https://redirector.arcpublishing.com/alc/arc-products/pagebuilder/fusion/documentation/recipes/using-environment-secrets.md).
 
-Copy your .npmrc to .npmrc-encrypted. Using the [secrets](https://redirector.arcpublishing.com/alc/arc-products/pagebuilder/fusion/documentation/recipes/using-environment-secrets.md) tab in the editor encrypt your github access token using the corresponding OBF environment.
-
-```
-@wpmedia:registry=https://npm.pkg.github.com/
-//npm.pkg.github.com/:_authToken=%{ your encrypted personal access token }
-```
-
-Once you are ready to [deploy](https://redirector.arcpublishing.com/alc/arc-products/pagebuilder/fusion/documentation/recipes/deploying-feature-pack.md) a bundle, run the zip command. You will see some errors about missing @wpmedia packages.  But the bundle doesn't contain any npm modules so you can safely ignore those.
+Once you are ready to [deploy](https://redirector.arcpublishing.com/alc/arc-products/pagebuilder/fusion/documentation/recipes/deploying-feature-pack.md) a bundle, run the npx fusion zip command.
 
 ```
 npx fusion zip
