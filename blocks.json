@@ -10,6 +10,7 @@
     "@wpmedia/site-hierarchy-content-block",
     "@wpmedia/ans-feature-block",
     "@wpmedia/mrss-feature-block",
+    "@wpmedia/rss-alexa-feature-block",
     "@wpmedia/rss-feature-block",
     "@wpmedia/rss-fbia-feature-block",
     "@wpmedia/rss-flipboard-feature-block",
