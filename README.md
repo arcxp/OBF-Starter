@@ -9,7 +9,11 @@ Pre-requisites:
 - node / npm installed (node version > 12).
 - docker
 
-1. Create a template of this repo. Go to https://github.com/arc-partners/outboundfeeds-skeleton and click on the green "Use this template" button to create a new client repo. Name the new repo starting with the clients name like "ORG-outboundfeeds". Only include the main branch. Once the new repo has been created, clone it to your local machine.
+1. Create a local repo
+
+Clone your Outbound Feeds repo to your local machine. In the arc-partners github account your repo will be named ORG-outboundfeeds, use your Arc organization name in place of ORG. For example, if your organization name is demo, your repo name would be demo-outboundfeeds.
+
+
 
 ```
 git clone git@github.com:arc-partners/ORG-outboundfeeds.git
