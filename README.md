@@ -13,8 +13,6 @@ Pre-requisites:
 
 Clone your Outbound Feeds repo to your local machine. In the arc-partners github account your repo will be named ORG-outboundfeeds, use your Arc organization name in place of ORG. For example, if your organization name is demo, your repo name would be demo-outboundfeeds.
 
-
-
 ```
 git clone git@github.com:arc-partners/ORG-outboundfeeds.git
 ```
@@ -70,7 +68,7 @@ Run Fusion locally see [here](https://redirector.arcpublishing.com/alc/arc-produ
 npx fusion start
 ```
 
-Once fusion has finished starting you should be able to to get to the pagebuilder editor [pages](http://localhost/pagebuilder/pages) and [templates](http://localhost/pagebuilder/templates) to add and configure feeds locally.  Once you have create your templates and resolvers you can use a tool like postman to see them at `http://localhost/arc/outboundfeeds/{FEED_NAME}?outputType=xml&_website={WEBSITE}`
+Once fusion has finished starting you should be able to to get to the pagebuilder editor [pages](http://localhost/pagebuilder/pages) and [templates](http://localhost/pagebuilder/templates) to add and configure feeds locally. Once you have create your templates and resolvers you can use a tool like postman to see them at `http://localhost/arc/outboundfeeds/{FEED_NAME}?outputType=xml&_website={WEBSITE}`
 
 Run tests with:
 
@@ -92,7 +90,7 @@ For more information on developing outbound feeds:
 
 - [intro](https://redirector.arcpublishing.com/alc/arc-products/arcio/user-docs/outbound-feeds-custom-block-development/)
 - [blocks.json](https://redirector.arcpublishing.com/alc/arc-products/arcio/user-docs/blocksjson/)
-- [Ecjecting blocks](https://redirector.arcpublishing.com/alc/arc-products/arcio/user-docs/ejecting-a-block/)
+- [Ejecting blocks](https://redirector.arcpublishing.com/alc/arc-products/arcio/user-docs/ejecting-a-block/)
 - [Block Architecture](https://redirector.arcpublishing.com/alc/arc-products/arcio/user-docs/feature-blocks-architecture/)
 - [Dependencies](https://redirector.arcpublishing.com/alc/arc-products/arcio/user-docs/dependencies/)
 - [Utilities](https://redirector.arcpublishing.com/alc/arc-products/arcio/user-docs/outbound-feeds-development-utilities/)
