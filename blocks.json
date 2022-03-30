@@ -21,6 +21,7 @@
     "@wpmedia/sitemap-video-feature-block",
     "@wpmedia/sitemap-feature-block",
     "@wpmedia/sitemap-index-by-day-feature-block",
+    "@wpmedia/sitemap-section-feature-block",
     "@wpmedia/sitemap-section-index-feature-block",
     "@wpmedia/json-output-block",
     "@wpmedia/text-output-block",
