@@ -303,7 +303,7 @@ switch (command) {
     promote(
       2,
       'https://api.outboundfeeds-sandbox.cinfinity.arcpublishing.com/deployments/fusion/',
-      '1SA7K48EELU1I6VC2G7N1G60L2HU4IQDncK36oiKTc/UFOcV++5NQv/JUlpxE6flzsPM5QJH',
+      'AUTH',
     )
     break
   case 'test':
