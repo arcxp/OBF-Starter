@@ -5,7 +5,9 @@ const axios = require('axios')
 const FormData = require('form-data')
 const fs = require('fs')
 require('dotenv').config()
+const { promisify } = require('util')
 const { execSync } = require('child_process')
+const sleep = promisify(setTimeout)
 
 // PULL ORG INFO
 const contentBase = process.env.CONTENT_BASE
@@ -30,6 +32,8 @@ function fetchEnvs() {
   return envs
 }
 const envs = fetchEnvs()
+const delay = process.env.POLLING_DELAY || 10000
+const timeout = process.env.TIMEOUT || 30
 
 // PREPARE THE BUNDLE
 
@@ -173,8 +177,18 @@ function zipBundle(zipFileName) {
     `zip dist/${zipFileName}.zip -r . -x ".git/*" ".env" "node_modules/*" "coverage/*" ".github/*" ".fusion/*" ".circleci/*" "data/*" "mocks/*" "dist/*" "src/*.scss" ".stylelintrc.json" "obf-provisioning.js"`,
   )
   // execSync('zip bundle.zip -r . -x .git/\* node_modules/\* coverage/\* .github/\* .fusion/\* mocks/\* __mocks__/\* data/\* README.md documentation/\* \*.test.jsx .env .npmrc')
-  console.log(`Bundle has been successfully zipped at dist/${zipFileName}`)
+  console.log(`Zipped bundle can be found at dist/${zipFileName}`)
   // return zipFileName
+}
+
+let latestServiceVersion = null
+// let services = null
+
+const setServiceValues = (response) => {
+  const { data: { lambdas = [] } = {} } = response
+  latestServiceVersion =
+    lambdas && lambdas.length > 0 ? lambdas[lambdas.length - 1].Version : 0
+  console.log('Latest Service Version: ', latestServiceVersion)
 }
 
 async function upload(zipFileName, deployUrl, auth) {
@@ -184,6 +198,13 @@ async function upload(zipFileName, deployUrl, auth) {
   form.append('name', zipFileName)
   form.append('bundle', fs.createReadStream(`dist/${zipFileName}.zip`))
   try {
+    const response = await axios.get(`${deployUrl}services`, {
+      headers: {
+        Authorization: `Bearer ${auth}`,
+      },
+    })
+    // console.log('Current services..', response.data)
+    setServiceValues(response)
     // const response = await axios.post(`${deployUrl}bundles`, form, {
     await axios.post(`${deployUrl}bundles`, form, {
       headers: {
@@ -195,8 +216,8 @@ async function upload(zipFileName, deployUrl, auth) {
     // console.log(`Upload to ${deployUrl} successful:`, response)
     console.log(`Upload to ${deployUrl} successful:`)
   } catch (error) {
-    // console.error('Upload failed:', error);
-    console.error('Upload failed')
+    console.error('Upload failed:', error)
+    // console.error('Upload failed')
     throw error
   }
 }
@@ -221,6 +242,38 @@ async function deploy(zipFileName, deployUrl, auth) {
   }
 }
 
+const getLatestServiceVersion = (response) => {
+  const { data: { lambdas = [] } = {} } = response
+
+  const currentVersion = lambdas[lambdas.length - 1].Version
+  if (latestServiceVersion < currentVersion) {
+    console.log('Bundle successfully deployed.')
+    return currentVersion
+  }
+  return null
+}
+
+const checkDeployment = async (deployUrl, auth, limit) => {
+  console.log(`Checking if deployment has completed...`)
+
+  /* eslint-disable no-await-in-loop */
+  for (let i = 0; i < limit; i += 1) {
+    await sleep(delay)
+    const response = await axios.get(`${deployUrl}services`, {
+      headers: {
+        Authorization: `Bearer ${auth}`,
+      },
+    })
+    const newValue = getLatestServiceVersion(response)
+    if (newValue) return newValue
+  }
+  /* eslint-enable no-await-in-loop */
+
+  throw new Error(
+    'Bundle did not deploy within the set time. Further investigation required. One possible solution is to increase the timeout, if the bundle was eventually deployed',
+  )
+}
+
 async function promote(bundleVersion, deployUrl, auth) {
   console.log('Attempting to promote service version: ', bundleVersion)
   try {
@@ -234,6 +287,7 @@ async function promote(bundleVersion, deployUrl, auth) {
         Authorization: `Bearer ${auth}`,
       },
     })
+    console.log(`${bundleVersion} successfully promoted`)
   } catch (e) {
     console.error('Error in Promotion step!', e)
     await Promise.reject(e)
@@ -244,8 +298,8 @@ async function zipAndUpload() {
   // const date = new Date().toISOString()
   // const dateStr = date.replaceAll(/[^a-zA-Z0-9-]/gi, '-')
   // const zipFileName = `${orgID}-${dateStr}.zip`;
-  // const zipFileName = `${orgID}-obf-starter.zip`
-  const zipFileName = 'OBF-Starter'
+  const zipFileName = `${orgID}-obf-bundle`
+  // const zipFileName = 'OBF-Starter-Bundle'
 
   try {
     zipBundle(zipFileName)
@@ -265,6 +319,9 @@ async function zipAndUpload() {
       try {
         await upload(zipFileName, deployUrl, auth)
         await deploy(zipFileName, deployUrl, auth)
+        const version = await checkDeployment(deployUrl, auth, timeout)
+        await promote(version, deployUrl, auth)
+        console.log('OBF Provisioning Complete')
       } catch (error) {
         console.error('Upload failed, deployment skipped for environment:', env)
       }
@@ -299,12 +356,11 @@ switch (command) {
   case 'deploy':
     zipAndUpload()
     break
-  case 'promote':
-    promote(
-      2,
-      'https://api.outboundfeeds-sandbox.cinfinity.arcpublishing.com/deployments/fusion/',
-      'AUTH',
-    )
+  case 'configure-and-deploy':
+    fetchSiteData()
+    updateEnvironment()
+    addToGitignore()
+    zipAndUpload()
     break
   case 'test':
     console.log(envs)
