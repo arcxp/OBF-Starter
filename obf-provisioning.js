@@ -1,6 +1,3 @@
-/* eslint-disable no-fallthrough */
-/* eslint-disable no-undef */
-/* eslint-disable no-case-declarations */
 const axios = require('axios')
 const FormData = require('form-data')
 const fs = require('fs')
@@ -12,6 +9,13 @@ const sleep = promisify(setTimeout)
 // PULL ORG INFO
 const contentBase = process.env.CONTENT_BASE
 const authToken = process.env.ARC_ACCESS_TOKEN
+const orgID = fetchOrgID()
+const envs = fetchEnvs()
+const zipFileName = `${orgID}-obf-bundle`
+const delay = process.env.POLLING_DELAY || 10000
+const timeout = process.env.TIMEOUT || 30
+let latestServiceVersion = null
+
 function fetchOrgID() {
   if (!contentBase) {
     console.log('No CONTENT_BASE found in .env')
@@ -19,7 +23,6 @@ function fetchOrgID() {
     return contentBase.split('.')[contentBase.split('.').length - 3]
   }
 }
-const orgID = fetchOrgID()
 
 function fetchEnvs() {
   const envs = []
@@ -31,12 +34,23 @@ function fetchEnvs() {
   }
   return envs
 }
-const envs = fetchEnvs()
-const delay = process.env.POLLING_DELAY || 10000
-const timeout = process.env.TIMEOUT || 30
+
+function fetchEnvironmentVariables(env) {
+  let baseUrl = ''
+  let auth = ''
+
+  if (env === 'outboundfeeds') {
+    baseUrl = process.env.OBF_DEPLOYER_ENDPOINT
+    auth = process.env.OBF_DEPLOYER_ACCESS_TOKEN
+  } else if (env === 'outboundfeeds-sandbox') {
+    baseUrl = process.env.OBF_SANDBOX_DEPLOYER_ENDPOINT
+    auth = process.env.OBF_SANDBOX_DEPLOYER_ACCESS_TOKEN
+  }
+
+  return { baseUrl, auth }
+}
 
 // PREPARE THE BUNDLE
-
 function deleteFile(filePath) {
   fs.unlink(filePath, (err) => {
     if (err) {
@@ -47,35 +61,37 @@ function deleteFile(filePath) {
   })
 }
 
-function updateEnvironment() {
+async function updateEnvironment() {
   const envsToCheck = ['outboundfeeds', 'outboundfeeds-sandbox']
 
-  envsToCheck.forEach((env) => {
-    const environmentPath = `environment/themesinternal-${env}.js`
-    if (envs.includes(env)) {
-      const writePath = `environment/${orgID}-${env}.js`
-      console.log(`Updating ${writePath}`)
+  await Promise.all(
+    envsToCheck.map(async (env) => {
+      const environmentPath = `environment/themesinternal-${env}.js`
+      if (envs.includes(env)) {
+        const writePath = `environment/${orgID}-${env}.js`
+        console.log(`Updating ${writePath}`)
 
-      let resizerEncrypted
-      if (env === 'outboundfeeds') {
-        resizerEncrypted = process.env.PROD_RESIZER_ENCRYPTED
-      } else if (env === 'outboundfeeds-sandbox') {
-        resizerEncrypted = process.env.SANDBOX_RESIZER_ENCRYPTED
-      } else {
-        console.log('No resizer values found')
-        return
+        let resizerEncrypted
+        if (env === 'outboundfeeds') {
+          resizerEncrypted = process.env.PROD_RESIZER_ENCRYPTED
+        } else if (env === 'outboundfeeds-sandbox') {
+          resizerEncrypted = process.env.SANDBOX_RESIZER_ENCRYPTED
+        } else {
+          console.log('No resizer values found')
+          return
+        }
+
+        const environmentFile = fs.readFileSync(environmentPath, 'utf-8')
+
+        const updatedEnvironmentFile = environmentFile.replace(
+          '%{ ENCRYPTED RESIZER KEY GOES HERE }',
+          `%{${resizerEncrypted}}`,
+        )
+        fs.writeFileSync(writePath, updatedEnvironmentFile, 'utf-8')
       }
-
-      const environmentFile = fs.readFileSync(environmentPath, 'utf-8')
-
-      const updatedEnvironmentFile = environmentFile.replace(
-        '%{ ENCRYPTED RESIZER KEY GOES HERE }',
-        `%{${resizerEncrypted}}`,
-      )
-      fs.writeFileSync(writePath, updatedEnvironmentFile, 'utf-8')
-    }
-    deleteFile(environmentPath)
-  })
+      deleteFile(environmentPath)
+    }),
+  )
 }
 
 function updateBlocksJSON(data) {
@@ -94,12 +110,12 @@ function updateBlocksJSON(data) {
   const blocksPath = 'blocks.json'
   const blocksJSON = JSON.parse(fs.readFileSync(blocksPath, 'utf-8'))
 
-  updatedContent = blocksJSON
+  const updatedContent = blocksJSON
   updatedContent.values.sites = sitesObject
   fs.writeFileSync(blocksPath, JSON.stringify(updatedContent, null, 2), 'utf-8')
 }
 
-function fetchSiteData() {
+async function fetchSiteData() {
   try {
     if (!contentBase || !authToken) {
       throw new Error(
@@ -115,42 +131,32 @@ function fetchSiteData() {
       },
     }
 
-    axios
-      .get(apiUrl, options)
-      .then((res) => {
-        fs.writeFileSync(
-          'mocks/siteservice/api/v3/website',
-          JSON.stringify(res.data, null, 2),
-          'utf-8',
-        )
-        updateBlocksJSON(res.data)
-      })
-      .catch((error) => {
-        console.error('Error fetching data:', error.message)
-      })
+    const res = await axios.get(apiUrl, options)
+    fs.writeFileSync(
+      'mocks/siteservice/api/v3/website',
+      JSON.stringify(res.data, null, 2),
+      'utf-8',
+    )
+    updateBlocksJSON(res.data)
   } catch (error) {
-    console.error('Error:', error.message)
+    console.error('Error fetching data:', error.message)
   }
 }
 
 function addToGitignore() {
   const gitignorePath = '.gitignore'
 
-  // Read the current content of .gitignore
   fs.readFile(gitignorePath, 'utf8', (err, data) => {
     if (err) {
       console.error(`Error reading ${gitignorePath}: ${err.message}`)
       return
     }
 
-    // Check if the file is already in .gitignore
     if (data.includes('obf-provisioning.js')) {
       console.log(`File 'obf-provisioning.js' is already in ${gitignorePath}.`)
     } else {
-      // Append the file to .gitignore
       const updatedContent = data + `\nobf-provisioning.js\n`
 
-      // Write the updated content back to .gitignore
       fs.writeFile(gitignorePath, updatedContent, 'utf8', (writeErr) => {
         if (writeErr) {
           console.error(
@@ -165,7 +171,6 @@ function addToGitignore() {
 }
 
 // ZIP AND DEPLOY THE BUNDLE
-
 function zipBundle(zipFileName) {
   if (!fs.existsSync('dist')) {
     fs.mkdirSync('dist')
@@ -176,13 +181,8 @@ function zipBundle(zipFileName) {
   execSync(
     `zip dist/${zipFileName}.zip -r . -x ".git/*" ".env" "node_modules/*" "coverage/*" ".github/*" ".fusion/*" ".circleci/*" "data/*" "mocks/*" "dist/*" "src/*.scss" ".stylelintrc.json" "obf-provisioning.js"`,
   )
-  // execSync('zip bundle.zip -r . -x .git/\* node_modules/\* coverage/\* .github/\* .fusion/\* mocks/\* __mocks__/\* data/\* README.md documentation/\* \*.test.jsx .env .npmrc')
   console.log(`Zipped bundle can be found at dist/${zipFileName}`)
-  // return zipFileName
 }
-
-let latestServiceVersion = null
-// let services = null
 
 const setServiceValues = (response) => {
   const { data: { lambdas = [] } = {} } = response
@@ -194,7 +194,6 @@ const setServiceValues = (response) => {
 async function upload(zipFileName, deployUrl, auth) {
   console.log(`Beginning Upload to ${deployUrl}`)
   const form = new FormData()
-  // form.append('name', zipFileName);
   form.append('name', zipFileName)
   form.append('bundle', fs.createReadStream(`dist/${zipFileName}.zip`))
   try {
@@ -203,9 +202,7 @@ async function upload(zipFileName, deployUrl, auth) {
         Authorization: `Bearer ${auth}`,
       },
     })
-    // console.log('Current services..', response.data)
     setServiceValues(response)
-    // const response = await axios.post(`${deployUrl}bundles`, form, {
     await axios.post(`${deployUrl}bundles`, form, {
       headers: {
         'Content-Type': 'multipart/form-data',
@@ -213,11 +210,9 @@ async function upload(zipFileName, deployUrl, auth) {
         ...form.getHeaders(),
       },
     })
-    // console.log(`Upload to ${deployUrl} successful:`, response)
     console.log(`Upload to ${deployUrl} successful:`)
   } catch (error) {
     console.error('Upload failed:', error)
-    // console.error('Upload failed')
     throw error
   }
 }
@@ -227,7 +222,6 @@ async function deploy(zipFileName, deployUrl, auth) {
   try {
     await axios.post(
       `${deployUrl}services?bundle=${zipFileName}&version=latest`,
-      // `${contentBase}/deployments/fusion/services?bundle=BLAKE_DEPLOY_TEST_2&version=latest`,
       null,
       {
         headers: {
@@ -256,7 +250,6 @@ const getLatestServiceVersion = (response) => {
 const checkDeployment = async (deployUrl, auth, limit) => {
   console.log(`Checking if deployment has completed...`)
 
-  /* eslint-disable no-await-in-loop */
   for (let i = 0; i < limit; i += 1) {
     await sleep(delay)
     const response = await axios.get(`${deployUrl}services`, {
@@ -267,7 +260,6 @@ const checkDeployment = async (deployUrl, auth, limit) => {
     const newValue = getLatestServiceVersion(response)
     if (newValue) return newValue
   }
-  /* eslint-enable no-await-in-loop */
 
   throw new Error(
     'Bundle did not deploy within the set time. Further investigation required. One possible solution is to increase the timeout, if the bundle was eventually deployed',
@@ -295,26 +287,10 @@ async function promote(bundleVersion, deployUrl, auth) {
 }
 
 async function zipAndUpload() {
-  // const date = new Date().toISOString()
-  // const dateStr = date.replaceAll(/[^a-zA-Z0-9-]/gi, '-')
-  // const zipFileName = `${orgID}-${dateStr}.zip`;
-  const zipFileName = `${orgID}-obf-bundle`
-  // const zipFileName = 'OBF-Starter-Bundle'
-
   try {
     zipBundle(zipFileName)
     for (const env of envs) {
-      let baseUrl = ''
-      let auth = ''
-
-      if (env === 'outboundfeeds') {
-        baseUrl = process.env.OBF_DEPLOYER_ENDPOINT
-        auth = process.env.OBF_DEPLOYER_ACCESS_TOKEN
-      }
-      if (env === 'outboundfeeds-sandbox') {
-        baseUrl = process.env.OBF_SANDBOX_DEPLOYER_ENDPOINT
-        auth = process.env.OBF_SANDBOX_DEPLOYER_ACCESS_TOKEN
-      }
+      const { baseUrl, auth } = fetchEnvironmentVariables(env)
       const deployUrl = `${baseUrl}/deployments/fusion/`
       try {
         await upload(zipFileName, deployUrl, auth)
@@ -331,10 +307,15 @@ async function zipAndUpload() {
   }
 }
 
-function testFunction() {
-  // const testDate = new Date().toISOString()
-  // console.log(testDate.replaceAll(/[^a-zA-Z0-9-]/ig, '-'))
-  console.log('Test Function')
+async function configureAndDeploy() {
+  try {
+    addToGitignore()
+    await fetchSiteData()
+    await updateEnvironment()
+    await zipAndUpload()
+  } catch (error) {
+    console.log('There wa an error during deployment:', error)
+  }
 }
 
 const command = process.argv[2]
@@ -351,20 +332,13 @@ switch (command) {
     addToGitignore()
     break
   case 'zip':
-    zipBundle('test-zip')
+    zipBundle()
     break
   case 'deploy':
     zipAndUpload()
     break
   case 'configure-and-deploy':
-    fetchSiteData()
-    updateEnvironment()
-    addToGitignore()
-    zipAndUpload()
-    break
-  case 'test':
-    console.log(envs)
-    testFunction()
+    configureAndDeploy()
     break
   default:
     console.error(`Unknown command: ${command}`)
