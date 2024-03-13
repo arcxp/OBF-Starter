@@ -297,11 +297,11 @@ async function zipAndUpload() {
         await deploy(zipFileName, deployUrl, auth)
         const version = await checkDeployment(deployUrl, auth, timeout)
         await promote(version, deployUrl, auth)
-        console.log('OBF Provisioning Complete')
       } catch (error) {
         console.error('Upload failed, deployment skipped for environment:', env)
       }
     }
+    console.log('OBF Provisioning Complete')
   } catch (error) {
     console.log('There was an error during deployment:', error)
   }
