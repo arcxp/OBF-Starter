@@ -1,7 +1,12 @@
 [
   {
-    "_id": "localhost",
-    "display_name": "localhost",
-    "is_default_website": true
+    "_id": "reddesignsystems",
+    "display_name": "Red Design Systems",
+    "base_path": "https://reddesignsystems.com/",
+    "is_default_website": true,
+    "domains": [
+      "reddesignsystems.com"
+    ],
+    "default_language": ""
   }
 ]
