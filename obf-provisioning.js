@@ -10,6 +10,7 @@ const sleep = promisify(setTimeout)
 const contentBase = process.env.CONTENT_BASE
 const authToken = process.env.ARC_ACCESS_TOKEN
 const orgID = fetchOrgID()
+const envsToCheck = ['outboundfeeds', 'outboundfeeds-sandbox']
 const envs = fetchEnvs()
 const zipFileName = `${orgID}-obf-bundle`
 const delay = process.env.POLLING_DELAY || 10000
@@ -51,57 +52,76 @@ function fetchEnvironmentVariables(env) {
 }
 
 // PREPARE THE BUNDLE
-function deleteFile(filePath) {
-  fs.unlink(filePath, (err) => {
-    if (err) {
-      console.error(`Error deleting file ${filePath}: ${err}`)
-    } else {
-      console.log(`File ${filePath} has been deleted.`)
+async function fetchResizerVersion() {
+  console.log('Fetching Resizer Version')
+
+  try {
+    if (!contentBase || !authToken) {
+      throw new Error(
+        'CONTENT_BASE or ARC_ACCESS_TOKEN is not defined in environment variables.',
+      )
     }
-  })
+
+    const apiUrl = `${contentBase}/delivery-api/v1/organization/hmac-key/resizer?enabled=true`
+
+    const headers = {
+      Authorization: `Bearer ${authToken}`,
+    }
+
+    const response = await axios.get(apiUrl, { headers })
+    const resizerVersion = response.data[0].ssm_version
+    console.log(resizerVersion)
+    return resizerVersion
+  } catch (error) {
+    console.error('Error:', error.message)
+  }
 }
 
 async function updateEnvironment() {
-  const envsToCheck = ['outboundfeeds', 'outboundfeeds-sandbox']
-
+  const resizerVersion = await fetchResizerVersion()
   await Promise.all(
     envsToCheck.map(async (env) => {
-      const environmentPath = `environment/themesinternal-${env}.js`
       if (envs.includes(env)) {
-        const writePath = `environment/${orgID}-${env}.js`
-        console.log(`Updating ${writePath}`)
+        const writePath = `environment/${orgID}-${env}.json`
+        const blockDistTag = env === 'outboundfeeds' ? 'stable' : 'beta'
 
-        let resizerEncrypted
-        if (env === 'outboundfeeds') {
-          resizerEncrypted = process.env.PROD_RESIZER_ENCRYPTED
-        } else if (env === 'outboundfeeds-sandbox') {
-          resizerEncrypted = process.env.SANDBOX_RESIZER_ENCRYPTED
-        } else {
-          console.log('No resizer values found')
-          return
+        const envContent = {
+          BLOCK_DIST_TAG: blockDistTag,
+          RESIZER_TOKEN_VERSION: resizerVersion,
+          SIGNING_SERVICE_DEFAULT_APP: 'resizer',
         }
 
-        const environmentFile = fs.readFileSync(environmentPath, 'utf-8')
-
-        const updatedEnvironmentFile = environmentFile.replace(
-          '%{ ENCRYPTED RESIZER KEY GOES HERE }',
-          `%{${resizerEncrypted}}`,
+        fs.writeFileSync(
+          writePath,
+          JSON.stringify(envContent, null, 2),
+          'utf-8',
         )
-        fs.writeFileSync(writePath, updatedEnvironmentFile, 'utf-8')
+        console.log(`${writePath} successfully updated`)
       }
-      deleteFile(environmentPath)
     }),
   )
 }
 
 function updateBlocksJSON(data) {
   const sitesObject = {}
+  console.log(envs)
 
   data.forEach((site) => {
+    const resizerObject = {}
+    if (envs.includes('outboundfeeds')) {
+      resizerObject[`${orgID}-outboundfeeds`] =
+        `https://${orgID}-${site._id}-prod.web.arc-cdn.net/resizer/v2`
+    }
+    if (envs.includes('outboundfeeds-sandbox')) {
+      resizerObject[`${orgID}-outboundfeeds-sandbox`] =
+        `https://${orgID}-${site._id}-sandbox.web.arc-cdn.net/resizer/v2`
+    }
+
     sitesObject[site._id] = {
       siteProperties: {
         feedDomainURL: `https://www.${site._id}.com`,
-        resizerURL: `https://${orgID}-${site._id}-prod.web.arc-cdn.net/resizer`,
+        resizerURL: `https://${orgID}-${site._id}-prod.web.arc-cdn.net/resizer/v2`,
+        resizerURLs: resizerObject,
         feedTitle: site.display_name || site._id,
       },
     }
@@ -113,6 +133,7 @@ function updateBlocksJSON(data) {
   const updatedContent = blocksJSON
   updatedContent.values.sites = sitesObject
   fs.writeFileSync(blocksPath, JSON.stringify(updatedContent, null, 2), 'utf-8')
+  console.log('blocks.json successfully updated')
 }
 
 async function fetchSiteData() {
