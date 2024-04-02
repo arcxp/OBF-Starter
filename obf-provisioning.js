@@ -167,27 +167,35 @@ async function fetchSiteData() {
 function addToGitignore() {
   const gitignorePath = '.gitignore'
 
-  fs.readFile(gitignorePath, 'utf8', (err, data) => {
-    if (err) {
-      console.error(`Error reading ${gitignorePath}: ${err.message}`)
-      return
-    }
+  return new Promise((resolve, reject) => {
+    fs.readFile(gitignorePath, 'utf8', (err, data) => {
+      if (err) {
+        console.error(`Error reading ${gitignorePath}: ${err.message}`)
+        reject(err)
+        return
+      }
 
-    if (data.includes('obf-provisioning.js')) {
-      console.log(`File 'obf-provisioning.js' is already in ${gitignorePath}.`)
-    } else {
-      const updatedContent = data + `\nobf-provisioning.js\n`
+      if (data.includes('themes-provisioning.js')) {
+        console.log(
+          `File 'themes-provisioning.js' is already in ${gitignorePath}.`,
+        )
+        resolve()
+      } else {
+        const updatedContent = data + `\nthemes-provisioning.js\n`
 
-      fs.writeFile(gitignorePath, updatedContent, 'utf8', (writeErr) => {
-        if (writeErr) {
-          console.error(
-            `Error writing to ${gitignorePath}: ${writeErr.message}`,
-          )
-        } else {
-          console.log(`Added 'obf-provisioning.js' to ${gitignorePath}.`)
-        }
-      })
-    }
+        fs.writeFile(gitignorePath, updatedContent, 'utf8', (writeErr) => {
+          if (writeErr) {
+            console.error(
+              `Error writing to ${gitignorePath}: ${writeErr.message}`,
+            )
+            reject(writeErr)
+          } else {
+            console.log(`Added 'themes-provisioning.js' to ${gitignorePath}.`)
+            resolve()
+          }
+        })
+      }
+    })
   })
 }
 
@@ -339,6 +347,49 @@ async function configureAndDeploy() {
   }
 }
 
+async function createRepo() {
+  await addToGitignore()
+  const execSettings = { stdio: 'inherit' }
+
+  try {
+    execSync('git init', execSettings)
+
+    execSync(
+      'git rm --cached --ignore-unmatch obf-provisioning.js',
+      execSettings,
+    )
+    console.log('Removed obf-provisioning.js from git cache')
+
+    execSync('git add .', execSettings)
+    console.log('Added all files to git')
+
+    execSync('git commit -m "Initial commit"', execSettings)
+    console.log('Committed changes')
+
+    execSync(
+      `gh repo create arcxp-ce-support/${orgID}-OutboundFeeds-Mirror --private`,
+      execSettings,
+    )
+    console.log('Created GitHub repository')
+
+    execSync(
+      `git remote set-url origin git@github.com:arcxp-ce-support/${orgID}-OutboundFeeds-Mirror.git`,
+      execSettings,
+    )
+    console.log('Set remote URL to new repo')
+
+    execSync('git push -u origin main', execSettings)
+    console.log(
+      `Pushed to remote. Repo can be found at https://github.com/arcxp-ce-support/${orgID}-OutboundFeeds-Mirror`,
+    )
+  } catch (error) {
+    console.error(
+      'Error:',
+      error.stderr ? error.stderr.toString() : error.toString(),
+    )
+  }
+}
+
 const command = process.argv[2]
 
 if (!command) {
@@ -360,6 +411,9 @@ switch (command) {
     break
   case 'configure-and-deploy':
     configureAndDeploy()
+    break
+  case 'create-repo':
+    createRepo()
     break
   default:
     console.error(`Unknown command: ${command}`)
