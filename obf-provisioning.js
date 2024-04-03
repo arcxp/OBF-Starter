@@ -315,10 +315,10 @@ async function promote(bundleVersion, deployUrl, auth) {
   }
 }
 
-async function zipAndUpload() {
+async function zipAndUpload(environments = envs) {
   try {
     zipBundle(zipFileName)
-    for (const env of envs) {
+    for (const env of environments) {
       const { baseUrl, auth } = fetchEnvironmentVariables(env)
       const deployUrl = `${baseUrl}/deployments/fusion/`
       try {
@@ -336,12 +336,12 @@ async function zipAndUpload() {
   }
 }
 
-async function configureAndDeploy() {
+async function configureAndDeploy(environments = envs) {
   try {
     addToGitignore()
     await fetchSiteData()
     await updateEnvironment()
-    await zipAndUpload()
+    await zipAndUpload(environments)
   } catch (error) {
     console.log('There wa an error during deployment:', error)
   }
@@ -391,6 +391,7 @@ async function createRepo() {
 }
 
 const command = process.argv[2]
+const environments = process.argv[3]?.split(',')
 
 if (!command) {
   console.error('Usage: node obf-provisioning.js <command> ')
@@ -407,10 +408,10 @@ switch (command) {
     zipBundle()
     break
   case 'deploy':
-    zipAndUpload()
+    zipAndUpload(environments)
     break
   case 'configure-and-deploy':
-    configureAndDeploy()
+    configureAndDeploy(environments)
     break
   case 'create-repo':
     createRepo()
