@@ -208,7 +208,7 @@ function zipBundle(zipFileName) {
 
   console.log('Zipping Bundle...')
   execSync(
-    `zip dist/${zipFileName}.zip -r . -x ".git/*" ".env" "node_modules/*" "coverage/*" ".github/*" ".fusion/*" ".circleci/*" "data/*" "mocks/*" "dist/*" "src/*.scss" ".stylelintrc.json" "obf-provisioning.js"`,
+    `zip dist/${zipFileName}.zip -r . -x ".git/*" ".env" ".npmrc" "node_modules/*" "coverage/*" ".github/*" ".fusion/*" ".circleci/*" "data/*" "mocks/*" "dist/*" "src/*.scss" ".stylelintrc.json" "obf-provisioning.js"`,
   )
   console.log(`Zipped bundle can be found at dist/${zipFileName}`)
 }
