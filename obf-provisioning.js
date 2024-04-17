@@ -175,13 +175,13 @@ function addToGitignore() {
         return
       }
 
-      if (data.includes('themes-provisioning.js')) {
+      if (data.includes('obf-provisioning.js')) {
         console.log(
-          `File 'themes-provisioning.js' is already in ${gitignorePath}.`,
+          `File 'obf-provisioning.js' is already in ${gitignorePath}.`,
         )
         resolve()
       } else {
-        const updatedContent = data + `\nthemes-provisioning.js\n`
+        const updatedContent = data + `\nobf-provisioning.js\n`
 
         fs.writeFile(gitignorePath, updatedContent, 'utf8', (writeErr) => {
           if (writeErr) {
@@ -190,7 +190,7 @@ function addToGitignore() {
             )
             reject(writeErr)
           } else {
-            console.log(`Added 'themes-provisioning.js' to ${gitignorePath}.`)
+            console.log(`Added 'obf-provisioning.js' to ${gitignorePath}.`)
             resolve()
           }
         })
