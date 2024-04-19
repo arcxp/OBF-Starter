@@ -36,7 +36,7 @@
   "dependencies": {
     "@babel/core": "^7.8.6",
     "@babel/preset-env": "^7.10.2",
-    "@wpmedia/feeds-xml-output": "^0.2.2",
+    "@wpmedia/feeds-xml-output": "^2.0.0",
     "jest": "^25.4.0",
     "lodash.get": "^4.4.2",
     "semver": "^7.6.0"
