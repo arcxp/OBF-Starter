@@ -1,7 +1,11 @@
 [
   {
-    "_id": "localhost",
-    "display_name": "localhost",
+    "_id": "larazondemexico",
+    "display_name": "La Razon de Mexico",
+    "base_path": "https://www.razon.com.mx/",
+    "domains": [
+      "razon.com.mx/"
+    ],
     "is_default_website": true
   }
 ]

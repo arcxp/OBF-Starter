@@ -36,20 +36,15 @@
       }
     },
     "sites": {
-      "website1": {
+      "larazondemexico": {
         "siteProperties": {
-          "feedDomainURL": "https://www.website1.com",
-          "resizerURL": "https://www.website1.com/resizer",
-          "feedTitle": "wwebsite 1",
-          "feedLanguage": "en"
-        }
-      },
-      "website2": {
-        "siteProperties": {
-          "feedDomainURL": "https://www.website2.com",
-          "resizerURL": "https://www.website2.com/resizer",
-          "feedTitle": "website 2",
-          "feedLanguage": "es"
+          "feedDomainURL": "https://www.larazondemexico.com",
+          "resizerURL": "https://larazondemexico-larazondemexico-prod.web.arc-cdn.net/resizer/v2",
+          "resizerURLs": {
+            "larazondemexico-outboundfeeds": "https://larazondemexico-larazondemexico-prod.web.arc-cdn.net/resizer/v2",
+            "larazondemexico-outboundfeeds-sandbox": "https://larazondemexico-larazondemexico-sandbox.web.arc-cdn.net/resizer/v2"
+          },
+          "feedTitle": "La Razon de Mexico"
         }
       }
     }
