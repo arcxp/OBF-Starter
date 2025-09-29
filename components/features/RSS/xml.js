@@ -142,11 +142,12 @@ const rssTemplate = (
               resizerWidth,
               resizerHeight,
               videoSelect,
-            )) &&
+            )) 
+            &&
             body && {
-              'content:encoded': {
-                $: body,
-              },
+              // 'content:encoded': {
+              //   $: body,
+              // },
             }),
           ...(includePromo && img && { '#': img }),
           ...(sectionName && { category: sectionName }),
